@@ -1,0 +1,121 @@
+
+
+'#set($orderFetchStatus = $input.path(''$.currentOrder.activeOrderStatus''))
+                       #if($orderFetchStatus.equals("ACTIVE_ORDER_FOUND"))
+  #set($orderInput = $input.path(''$.currentOrder.order''))
+#set($diners = [])
+                         #set($items = [])
+                         #foreach($orderRecord in $orderInput)
+                           #if($orderRecord.rangeKeyId.contains("DINER"))
+  $diners.add($orderRecord)
+                           #end
+                           #if($orderRecord.rangeKeyId.contains("ORDER"))
+  #set($order = $orderRecord)
+                           #end
+                         #end
+                       #end
+{
+  "orderFetchStatus":  "$orderFetchStatus"
+                          #if($orderFetchStatus.equals("ACTIVE_ORDER_FOUND")),
+  "order" : {
+  "groupName": "$order.groupName",
+    "orderType": "$order.orderType",
+    "orderDate": "$order.orderDate",
+    "orderStatus": "$order.orderStatus",
+    "orderId": "$order.orderId",
+    "groupCount": $order.groupCount,
+
+                            #foreach(orderField in $order.keySet())
+
+  "orderField" : "$util.escapeJavaScript($order.restaurant.get($restaurantField))"
+                            #if($foreach.hasNext),#end
+
+
+  "restaurant": {
+  #foreach($restaurantField in $order.restaurant.keySet())
+    "$restaurantField" : "$util.escapeJavaScript($order.restaurant.get($restaurantField))"
+                              #if($foreach.hasNext),#end
+                              #end
+  }
+},
+  "orderDetail": $input.json(''$.currentOrder'')
+#end
+}'
+
+
+
+
+
+#set($orderDetails = $input.json(''$.currentOrder.order''))
+#set($orderFetchStatus = $input.json(''$.currentOrder.activeOrderStatus''))
+#set($diner = [])
+#foreach($orderRecord in $orderDetails)
+  #if($orderRecord.rangeKeyId.contains("DINER"))
+    $diner.add($orderRecord)
+  #end
+#end
+{
+   "order" : $orderDetails,
+   "orderStatus":  $orderFetchStatus,
+   "diner": $diner
+}
+
+##  See http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-mapping-template-reference.html
+  ##  This template will pass through all parameters including path, querystring, header, stage variables, and context through to the integration endpoint via the body/payload
+#set($allParams = $input.params())
+{
+  "body-json" : $input.json('$'),
+  "params" : {
+#foreach($type in $allParams.keySet())
+    #set($params = $allParams.get($type))
+  "$type" : {
+  #foreach($paramName in $params.keySet())
+    "$paramName" : "$util.escapeJavaScript($params.get($paramName))"
+        #if($foreach.hasNext),#end
+    #end
+  }
+    #if($foreach.hasNext),#end
+#end
+},
+  "stage-variables" : {
+#foreach($key in $stageVariables.keySet())
+  "$key" : "$util.escapeJavaScript($stageVariables.get($key))"
+    #if($foreach.hasNext),#end
+#end
+},
+  "context" : {
+  "account-id" : "$context.identity.accountId",
+    "api-id" : "$context.apiId",
+    "api-key" : "$context.identity.apiKey",
+    "authorizer-principal-id" : "$context.authorizer.principalId",
+    "caller" : "$context.identity.caller",
+    "cognito-authentication-provider" : "$context.identity.cognitoAuthenticationProvider",
+    "cognito-authentication-type" : "$context.identity.cognitoAuthenticationType",
+    "cognito-identity-id" : "$context.identity.cognitoIdentityId",
+    "cognito-identity-pool-id" : "$context.identity.cognitoIdentityPoolId",
+    "http-method" : "$context.httpMethod",
+    "stage" : "$context.stage",
+    "source-ip" : "$context.identity.sourceIp",
+    "user" : "$context.identity.user",
+    "user-agent" : "$context.identity.userAgent",
+    "user-arn" : "$context.identity.userArn",
+    "request-id" : "$context.requestId",
+    "resource-id" : "$context.resourceId",
+    "resource-path" : "$context.resourcePath"
+}
+}
+
+
+#foreach(itemRow in items)
+{
+  "itemId": "itemRow.itemId",
+  "itemDescription": "itemRow.itemDescription",
+  "itemName": "itemRow.itemName",
+  "itemPrice": "itemRow.itemPrice",
+  "itemQuantity": "itemRow.itemQuantity",
+  "orderItemStatus": "itemRow.orderItemStatus",
+  "orderItemStatusDescription": "itemRow.orderItemStatusDescription",
+  "orderItemTotalPrice": "itemRow.orderItemTotalPrice",
+  "restaurantId": "itemRow.restaurantId"
+}#if($foreach.hasNext),#end
+                      #end

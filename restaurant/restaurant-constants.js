@@ -1,0 +1,10 @@
+
+const RESTAURANT = {
+  RANGE_KEY_DETAIL: 'DETAIL',
+  DINING_TABLE: 'DINING_TABLE:',
+  GEOHASH_PRECISION: 5
+}
+
+module.exports = {
+  RESTAURANT
+}

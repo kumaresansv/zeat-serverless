@@ -1,0 +1,249 @@
+# Welcome to Serverless!
+#
+# This file is the main config file for your service.
+# It's very minimal at this point and uses default values.
+# You can always add more config options for more control.
+# We've included some commented out config examples here.
+# Just uncomment any of them to get that config option.
+#
+# For full config options, check the docs:
+#    docs.serverless.com
+#
+# Happy Coding!
+
+service: Order
+
+# You can pin your service to only deploy with a specific Serverless version
+# Check out our docs for more details
+# frameworkVersion: "=X.X.X"
+
+custom:
+  private: ${file(../private.yml)}
+  template:
+    dinerContext:
+       '#set($allParams = $input.params())
+        #set($paramTypes= [''path'',''querystring''] )
+       {
+          "context" :
+           {
+             "dinerId": "$context.authorizer.claims.sub",
+             "username": "$context.authorizer.claims["cognito:username"]"
+          },
+          "params" : {
+          #set($pathCounter=0)
+          #foreach($type in $allParams.keySet())
+            #if($paramTypes.contains($type))
+              #if($pathCounter > 0),#end
+              #set($params = $allParams.get($type))
+              "$type" : {
+                  #foreach($paramName in $params.keySet())
+                  "$paramName" : "$util.escapeJavaScript($params.get($paramName))"
+                      #if($foreach.hasNext),#end
+                  #end
+              }
+              #set($pathCounter=$pathCounter+1)
+            #end
+          #end
+          },
+          "body": $input.json(''$'')
+       }'
+    order: '#set($status = $input.path(''$.status''))
+            #set($filterFields= [''rangeKeyId'',''restaurant'',''orderStatusId'',''submittedAt'' ] )
+            #set($numberFields= [''groupCount'' ] )
+            #if($status.equals("SUCCESS"))
+              #set($orderInput = $input.path(''$.order''))
+              #set($diners = [])
+              #set($items = [])
+              #foreach($orderRecord in $orderInput)
+                #if($orderRecord.rangeKeyId.contains("DINER")) #set($temp = $diners.add($orderRecord)) #end
+                #if($orderRecord.rangeKeyId.contains("ORDER")) #set($order = $orderRecord) #end
+                #if($orderRecord.rangeKeyId.contains("ITEM")) #set($temp = $items.add($orderRecord)) #end
+              #end
+            #else
+              #set($message = $input.path(''$.message''))
+            #end
+            {
+               "status":  "$status",
+               #if($status.equals("SUCCESS"))
+                 #if($orderInput.size() > 0)
+                   "order" : {
+                     #set($counter=0)
+                     #foreach($orderField in $order.keySet())
+                       #if(!($filterFields.contains($orderField)))
+                         #if($counter > 0),#end
+                         #if($numberFields.contains($orderField))
+                           "$orderField" : $util.escapeJavaScript($order.get($orderField))
+                         #else
+                           "$orderField" : "$util.escapeJavaScript($order.get($orderField))"
+                         #end
+                         #set($counter=$counter+1)
+                       #end
+                     #end,
+                     "restaurant": {
+                       #foreach($restaurantField in $order.restaurant.keySet())
+                         "$restaurantField" : "$util.escapeJavaScript($order.restaurant.get($restaurantField))" #if($foreach.hasNext),#end
+                       #end
+                       },
+                      "diners": [
+                      #foreach($dinerRow in $diners)
+                        {
+                           "dinerId": "$dinerRow.diner.dinerId",
+                           "dinerStatus": "$dinerRow.diner.dinerStatus",
+                           "nickname": "$dinerRow.diner.nickname",
+                           "phone": "$dinerRow.diner.phone",
+                           "username": "$dinerRow.diner.username"
+                        }#if($foreach.hasNext),#end
+                      #end
+                      ],
+                      "items": [
+                      #foreach($itemRow in $items)
+                        {
+                          "orderItemId": "$itemRow.orderItemId",
+                          "itemId": "$itemRow.itemId",
+                          "itemDescription": "$itemRow.itemDescription",
+                          "itemName": "$itemRow.itemName",
+                          "itemPrice": "$itemRow.itemPrice",
+                          "itemQuantity": "$itemRow.itemQuantity",
+                          "orderItemStatus": "$itemRow.orderItemStatus",
+                          "orderItemStatusDescription": "$itemRow.orderItemStatusDescription",
+                          "orderItemTotalPrice": "$itemRow.orderItemTotalPrice",
+                          "restaurantId": "$itemRow.restaurantId"
+                        }#if($foreach.hasNext),#end
+                      #end
+                      ]
+                   }
+                 #else
+                  "order": {}
+                 #end
+               #else
+                "message": "$message"
+               #end
+            }'
+provider:
+  name: aws
+  deploymentBucket: ${self:custom.private.deploymentBucket}
+  runtime: nodejs6.10
+  stage: ${self:custom.private.stage}
+  region: ${self:custom.private.region}
+  profile: ${self:custom.private.profile}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+        - dynamodb:BatchWriteItem
+      Resource: arn:aws:dynamodb:${self:custom.private.region}:${self:custom.private.zeatAccountId}:table/${opt:stage, self:custom.private.stage}-*
+    - Effect: Allow
+      Action:
+        - SNS:CreateTopic
+      Resource: arn:aws:sns:${self:custom.private.region}:${self:custom.private.zeatAccountId}:order-*
+
+functions:
+  createOrder:
+    handler: order.createOrder
+    environment:
+      TABLE_RESTAURANT_ORDER: ${opt:stage, self:custom.private.stage}-RestaurantOrders
+      TABLE_DINER: ${opt:stage, self:custom.private.stage}-Diners
+      TABLE_ORDER: ${opt:stage, self:custom.private.stage}-Orders
+      DEBUG: '*'
+    events:
+      - http:
+          path: /
+          method: post
+          cors: true
+          integration: lambda
+          request:
+            template:
+              application/json: ${self:custom.template.dinerContext}
+          response:
+            headers:
+              Content-Type: integration.response.header.Content-Type
+            template: ${self:custom.template.order}
+          authorizer:
+            name: dev-Diner
+            arn: arn:aws:cognito-idp:${self:custom.private.region}:${self:custom.private.zeatAccountId}:userpool/${self:custom.private.devDinerPool}
+  getActiveOrder:
+    handler: order.dinerActivOrder
+    environment:
+      TABLE_RESTAURANT_ORDER: ${opt:stage, self:custom.private.stage}-RestaurantOrders
+      TABLE_DINER: ${opt:stage, self:custom.private.stage}-Diners
+      TABLE_ORDER: ${opt:stage, self:custom.private.stage}-Orders
+      DEBUG: '*'
+    events:
+      - http:
+          path: /active
+          method: get
+          cors: true
+          authorizer:
+            name: dev-Diner
+            arn: arn:aws:cognito-idp:${self:custom.private.region}:${self:custom.private.zeatAccountId}:userpool/${self:custom.private.devDinerPool}
+  getOrderDetails:
+    handler: order.getOrderDetails
+    environment:
+      TABLE_RESTAURANT_ORDER: ${opt:stage, self:custom.private.stage}-RestaurantOrders
+      TABLE_DINER: ${opt:stage, self:custom.private.stage}-Diners
+      TABLE_ORDER: ${opt:stage, self:custom.private.stage}-Orders
+      DEBUG: '*'
+    events:
+      - http:
+          path: /{orderId}/
+          method: get
+          cors: true
+          integration: lambda
+          request:
+            template:
+              application/json: ${self:custom.template.dinerContext}
+          response:
+            headers:
+              Content-Type: integration.response.header.Content-Type
+            template: ${self:custom.template.order}
+          authorizer:
+            name: dev-Diner
+            arn: arn:aws:cognito-idp:${self:custom.private.region}:${self:custom.private.zeatAccountId}:userpool/${self:custom.private.devDinerPool}
+  joinOrder:
+    handler: order.joinOrder
+    environment:
+      TABLE_RESTAURANT_ORDER: ${opt:stage, self:custom.private.stage}-RestaurantOrders
+      TABLE_DINER: ${opt:stage, self:custom.private.stage}-Diners
+      TABLE_ORDER: ${opt:stage, self:custom.private.stage}-Orders
+    events:
+      - http:
+          path: /{orderId}/join
+          method: post
+          cors: true
+          authorizer:
+            name: dev-Diner
+            arn: arn:aws:cognito-idp:${self:custom.private.region}:${self:custom.private.zeatAccountId}:userpool/${self:custom.private.devDinerPool}
+  approveDiner:
+    handler: order.approveDiner
+    environment:
+      TABLE_RESTAURANT_ORDER: ${opt:stage, self:custom.private.stage}-RestaurantOrders
+      TABLE_DINER: ${opt:stage, self:custom.private.stage}-Diners
+      TABLE_ORDER: ${opt:stage, self:custom.private.stage}-Orders
+    events:
+      - http:
+          path: /{orderId}/approve/{dinerId}
+          method: post
+          cors: true
+          authorizer:
+            name: dev-Diner
+            arn: arn:aws:cognito-idp:${self:custom.private.region}:${self:custom.private.zeatAccountId}:userpool/${self:custom.private.devDinerPool}
+  updateItems:
+    handler: order.updateItems
+    environment:
+      TABLE_RESTAURANT_ORDER: ${opt:stage, self:custom.private.stage}-RestaurantOrders
+      TABLE_DINER: ${opt:stage, self:custom.private.stage}-Diners
+      TABLE_ORDER: ${opt:stage, self:custom.private.stage}-Orders
+      DEBUG: '*'
+    events:
+      - http:
+          path: /{orderId}/items/
+          method: post
+          cors: true
+          authorizer:
+            name: dev-Diner
+            arn: arn:aws:cognito-idp:${self:custom.private.region}:${self:custom.private.zeatAccountId}:userpool/${self:custom.private.devDinerPool}

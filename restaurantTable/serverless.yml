@@ -1,0 +1,65 @@
+# Welcome to Serverless!
+#
+# This file is the main config file for your service.
+# It's very minimal at this point and uses default values.
+# You can always add more config options for more control.
+# We've included some commented out config examples here.
+# Just uncomment any of them to get that config option.
+#
+# For full config options, check the docs:
+#    docs.serverless.com
+#
+# Happy Coding!
+
+service: RestaurantTable
+
+# You can pin your service to only deploy with a specific Serverless version
+# Check out our docs for more details
+# frameworkVersion: "=X.X.X"
+
+custom:
+  private: ${file(../private.yml)}
+
+provider:
+  name: aws
+  deploymentBucket: ${self:custom.private.deploymentBucket}
+  stage: ${self:custom.private.stage}
+  region: ${self:custom.private.region}
+  profile: ${self:custom.private.profile}
+resources:
+ Resources:
+    #Tables
+    Restaurants:
+      Type: AWS::DynamoDB::Table
+      # DeletionPolicy: Retain
+      Properties:
+        TableName: ${opt:stage, self:custom.private.stage}-Restaurants
+        AttributeDefinitions:
+          - AttributeName: restaurantId
+            AttributeType: S
+          - AttributeName: rangeKeyId
+            AttributeType: S
+          - AttributeName: geoHash
+            AttributeType: S
+        KeySchema:
+          - AttributeName: restaurantId
+            KeyType: HASH
+          - AttributeName: rangeKeyId
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 2
+          WriteCapacityUnits: 2
+        GlobalSecondaryIndexes:
+          - IndexName: GeohashRestaurantIndex
+            KeySchema:
+              - AttributeName: geoHash
+                KeyType: HASH
+              - AttributeName: restaurantId
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+#              ProjectionType: INCLUDE
+#              NonKeyAttributes: ["name", "geoPoint", "address", "phone"]
+            ProvisionedThroughput:
+              ReadCapacityUnits: 3
+              WriteCapacityUnits: 3

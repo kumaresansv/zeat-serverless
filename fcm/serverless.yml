@@ -1,0 +1,77 @@
+# Welcome to Serverless!
+#
+# This file is the main config file for your service.
+# It's very minimal at this point and uses default values.
+# You can always add more config options for more control.
+# We've included some commented out config examples here.
+# Just uncomment any of them to get that config option.
+#
+# For full config options, check the docs:
+#    docs.serverless.com
+#
+# Happy Coding!
+
+service: Firebase
+
+# You can pin your service to only deploy with a specific Serverless version
+# Check out our docs for more details
+# frameworkVersion: "=X.X.X"
+
+custom:
+  private: ${file(../private.yml)}
+
+provider:
+  name: aws
+  deploymentBucket: ${self:custom.private.deploymentBucket}
+  runtime: nodejs6.10
+  stage: ${self:custom.private.stage}
+  region: ${self:custom.private.region}
+  profile: ${self:custom.private.profile}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+        - dynamodb:BatchWriteItem
+        - dynamodb:DescribeStream
+        - dynamodb:GetRecords
+        - dynamodb:GetShardIterator
+        - dynamodb:ListStreams
+      Resource: arn:aws:dynamodb:${self:custom.private.region}:${self:custom.private.zeatAccountId}:table/${opt:stage, self:custom.private.stage}-*
+functions:
+  notifyDiner:
+      handler: fcm.notifyDiner
+      environment:
+        TABLE_RESTAURANT_ORDER: ${opt:stage, self:custom.private.stage}-RestaurantOrders
+        TABLE_DINER: ${opt:stage, self:custom.private.stage}-Diners
+        TABLE_ORDER: ${opt:stage, self:custom.private.stage}-Orders
+        FCM_DATABASE: ${self:custom.private.fcmDatabase}
+      events:
+        # - stream: arn:aws:dynamodb:${self:custom.private.region}:${self:custom.private.zeatAccountId}:table/${opt:stage, self:custom.private.stage}-OrderDetails/stream/*
+        - stream: arn:aws:dynamodb:us-west-2:367786383475:table/dev-Orders/stream/2017-08-18T04:51:06.276
+        # - stream:
+        #     type: dynamodb
+        #     arn:
+        #       Fn::GetAtt:
+        #         - dev-OrderDetails
+        #         - StreamArn
+          batchSize: 10
+          # startingPosition: TRIM_HORIZON
+          startingPosition: LATEST
+          enabled: true
+  notifyOrderDiners:
+      handler: fcm.notifyOrderDiners
+      environment:
+        TABLE_RESTAURANT_ORDER: ${opt:stage, self:custom.private.stage}-RestaurantOrders
+        TABLE_DINER: ${opt:stage, self:custom.private.stage}-Diners
+        TABLE_ORDER: ${opt:stage, self:custom.private.stage}-Orders
+        FCM_DATABASE: ${self:custom.private.fcmDatabase}
+      events:
+        - stream: arn:aws:dynamodb:us-west-2:367786383475:table/dev-Orders/stream/2017-08-18T04:51:06.276
+          batchSize: 10
+          startingPosition: LATEST
+          enabled: true

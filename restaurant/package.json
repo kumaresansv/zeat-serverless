@@ -1,0 +1,27 @@
+{
+  "name": "restaurant",
+  "version": "1.0.0",
+  "description": "Restaurant APIs",
+  "main": "restaurant.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@bitbucket.org/kumaresansv/serverless.git"
+  },
+  "keywords": [
+    "Restaurant",
+    "Zeat"
+  ],
+  "author": "Kumaresan, S.V",
+  "license": "ISC",
+  "homepage": "https://bitbucket.org/kumaresansv/serverless#readme",
+  "dependencies": {
+    "aws-sdk": "^2.62.0",
+    "debug": "^3.1.0",
+    "latlon-geohash": "^1.1.0",
+    "node-geocoder": "^3.19.0",
+    "uuid": "^3.0.1"
+  }
+}

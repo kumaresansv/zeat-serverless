@@ -1,0 +1,63 @@
+const ORDER_STATUS = {
+  WAITING_FOR_TABLE: 0,
+  TABLE_ASSIGNED: 1,
+  CHECK_REQUESTED: 2,
+  PAYMENT_INITIATED: 3,
+  PAYMENT_COMPLETED: 4,
+  ORDER_CANCELLED: 5,
+  ONLINE_ORDER: 6
+}
+
+const ORDER_STATUS_DESCRIPTION = [
+  'WaitingForTable',
+  'TableAssigned',
+  'CheckRequested',
+  'PaymentInitiated',
+  'PaymentCompleted',
+  'OrderCancelled',
+  'OnlineOrder'
+]
+
+const ITEM_STATUS = {
+  ADDED_IN_CART: 0,
+  ITEM_PLACED: 1,
+  ITEM_SENT_TO_KITCHEN: 2,
+  ITEM_DELIVERED:3,
+  ITEM_REQUESTED_FOR_CANCELLATION: 4,
+  ITEM_CANCELLED: 5
+}
+
+const ITEM_STATUS_DESCRIPTION = [
+  'AddedInCart',
+  'ItemPlaced',
+  'ItemSentToKitchen',
+  'ItemDelivered',
+  'ItemCancellationRequested',
+  'ItemCancelled'
+]
+
+const ORDER_TYPE = {
+  ONLINE: 'Online',
+  DINEIN: 'DineIn'
+}
+
+const DINER_STATUS = {
+  APPROVED: 'approved',
+  UNAPPROVED: 'unapproved'
+}
+
+const ORDER_DETAIL_CONSTANTS = {
+  DINER: 'DINER:',
+  ITEM: 'ITEM:',
+  ORDER: 'ORDER'
+}
+
+module.exports = {
+  ORDER_STATUS: ORDER_STATUS,
+  ORDER_STATUS_DESCRIPTION: ORDER_STATUS_DESCRIPTION,
+  ITEM_STATUS: ITEM_STATUS,
+  ITEM_STATUS_DESCRIPTION: ITEM_STATUS_DESCRIPTION,
+  ORDER_DETAIL_CONSTANTS: ORDER_DETAIL_CONSTANTS,
+  ORDER_TYPE: ORDER_TYPE,
+  DINER_STATUS: DINER_STATUS
+}

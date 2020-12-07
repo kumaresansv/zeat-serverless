@@ -1,0 +1,7 @@
+# package directories
+node_modules
+jspm_packages
+
+# Serverless directories
+.serverless
+zeat-fb4c2-firebase-adminsdk-9j1w1-11567d6900.json

@@ -1,0 +1,89 @@
+# Welcome to Serverless!
+#
+# This file is the main config file for your service.
+# It's very minimal at this point and uses default values.
+# You can always add more config options for more control.
+# We've included some commented out config examples here.
+# Just uncomment any of them to get that config option.
+#
+# For full config options, check the docs:
+#    docs.serverless.com
+#
+# Happy Coding!
+
+service: OrderTable
+
+# You can pin your service to only deploy with a specific Serverless version
+# Check out our docs for more details
+# frameworkVersion: "=X.X.X"
+
+custom:
+  private: ${file(../private.yml)}
+
+provider:
+  name: aws
+  deploymentBucket: ${self:custom.private.deploymentBucket}
+  stage: ${self:custom.private.stage}
+  region: ${self:custom.private.region}
+  profile: ${self:custom.private.profile}
+resources:
+ Resources:
+    #Tables
+    Orders:
+      Type: AWS::DynamoDB::Table
+      # DeletionPolicy: Retain
+      Properties:
+        TableName: ${opt:stage, self:custom.private.stage}-RestaurantOrders
+        AttributeDefinitions:
+          - AttributeName: restaurantId
+            AttributeType: S
+          - AttributeName: rangeKeyId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: restaurantId
+            KeyType: HASH
+          - AttributeName: rangeKeyId
+            KeyType: RANGE
+#        StreamSpecification:
+#          StreamViewType: NEW_AND_OLD_IMAGES
+        ProvisionedThroughput:
+          ReadCapacityUnits: 2
+          WriteCapacityUnits: 2
+    OrderDetais:
+      Type: AWS::DynamoDB::Table
+      # DeletionPolicy: Retain
+      Properties:
+        TableName: ${opt:stage, self:custom.private.stage}-Orders
+        AttributeDefinitions:
+          - AttributeName: orderId
+            AttributeType: S
+          - AttributeName: rangeKeyId
+            AttributeType: S
+          - AttributeName: orderDate
+            AttributeType: S
+          - AttributeName: dinerId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: orderId
+            KeyType: HASH
+          - AttributeName: rangeKeyId
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 2
+          WriteCapacityUnits: 2
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
+        GlobalSecondaryIndexes:
+          - IndexName: DinerOrderDateIndex
+            KeySchema:
+              - AttributeName: dinerId
+                KeyType: HASH
+              - AttributeName: orderDate
+                KeyType: RANGE
+            Projection:
+              ProjectionType: INCLUDE
+              NonKeyAttributes: ["DINER_STATUS", "orderId", "restaurantId"]
+            ProvisionedThroughput: 
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+

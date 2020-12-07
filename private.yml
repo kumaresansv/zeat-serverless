@@ -1,0 +1,12 @@
+stage: dev
+region: us-west-2
+deploymentBucket: zeatdev-serverless
+profile: dev_serverless
+devDinerPool: us-west-2_XXXXXXXX
+devOwnerPool: us-west-2_XXXXXXXX
+zeatAccountId: 999999999999
+googleApiKey: <GoogleApiKey>
+iOSApiKey: <iOSApiKey>
+fcmDatabase: "https://zeat-xxxx.firebaseio.com/"
+menuBaseUrl: "https://devmenu.zeatit.com/"
+s3Bucket: zeatitdev

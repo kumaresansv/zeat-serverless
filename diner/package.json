@@ -1,0 +1,17 @@
+{
+  "name": "diner",
+  "version": "1.0.0",
+  "description": "Services for Diner Registration/Authentication/Updation",
+  "main": "handler.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Kumaresan, S.V",
+  "license": "ZEAT",
+  "keywords": [
+    "Diner"
+  ],
+  "dependencies": {
+    "aws-sdk": "^2.72.0"
+  }
+}

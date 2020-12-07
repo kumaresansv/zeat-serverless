@@ -1,0 +1,79 @@
+# Welcome to Serverless!
+#
+# This file is the main config file for your service.
+# It's very minimal at this point and uses default values.
+# You can always add more config options for more control.
+# We've included some commented out config examples here.
+# Just uncomment any of them to get that config option.
+#
+# For full config options, check the docs:
+#    docs.serverless.com
+#
+# Happy Coding!
+
+service: Diner
+
+# You can pin your service to only deploy with a specific Serverless version
+# Check out our docs for more details
+# frameworkVersion: "=X.X.X"
+
+custom:
+  private: ${file(../private.yml)}
+
+provider:
+  name: aws
+  deploymentBucket: ${self:custom.private.deploymentBucket}
+  runtime: nodejs6.10
+  stage: ${self:custom.private.stage}
+  region: ${self:custom.private.region}
+  profile: ${self:custom.private.profile}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: arn:aws:dynamodb:${self:custom.private.region}:${self:custom.private.zeatAccountId}:table/${opt:stage, self:custom.private.stage}-*
+
+functions:
+  registerDiner:
+    handler: diner.registerDiner
+    environment:
+      TABLE_DINER: ${opt:stage, self:custom.private.stage}-Diners
+    events:
+      - http:
+          path: /
+          method: post
+          cors: true
+          authorizer:
+            name: dev-Diner
+            arn: arn:aws:cognito-idp:${self:custom.private.region}:${self:custom.private.zeatAccountId}:userpool/${self:custom.private.devDinerPool}
+
+  registerDinerToken:
+    handler: diner.registerToken
+    environment:
+      TABLE_DINER: ${opt:stage, self:custom.private.stage}-Diners
+    events:
+      - http:
+          path: /tokens
+          method: post
+          cors: true
+          authorizer:
+            name: dev-Diner
+            arn: arn:aws:cognito-idp:${self:custom.private.region}:${self:custom.private.zeatAccountId}:userpool/${self:custom.private.devDinerPool}
+
+  deleteDinerToken:
+    handler: diner.deleteToken
+    environment:
+      TABLE_DINER: ${opt:stage, self:custom.private.stage}-Diners
+    events:
+      - http:
+          path: /tokens/{token_id}
+          method: delete
+          cors: true
+          authorizer:
+            name: dev-Diner
+            arn: arn:aws:cognito-idp:${self:custom.private.region}:${self:custom.private.zeatAccountId}:userpool/${self:custom.private.devDinerPool}
